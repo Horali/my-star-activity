@@ -1,6 +1,6 @@
 Status: waiting
-Needs user: Confirm /mystar on shows the card and /mystar off hides it.
-Updated: 2026-11-27 21:10
+Needs user: Try /mystar status <text> in Discord (new; not tested by the user yet).
+Updated: 2026-11-27 21:25
 Agent: Claude desktop app, Opus 5.5
 Touches: DiscordBot (Horali/Horaya-Bot): mystar.py, bot.py
 
@@ -15,6 +15,9 @@ The user turns it on and off with Horaya's `/mystar on|off`. Default off.
   MYSTAR_SECRET is set there. GET /mystar works (tested: key -> JSON, no key -> 404).
 - PC program: HORAYA_URL set, restarted, reads "Toggle: off". Runs hidden; auto-starts at login.
 - App icon = my_star's avatar (voice "?" icon). Not confirmed in the voice list.
+
+- /mystar is a group: on, off, status <text> (2-128 chars, empty = config.json state), show.
+  Deployed and restarted; GET /mystar returns {on, rev, status}.
 
 ## Next steps
 
