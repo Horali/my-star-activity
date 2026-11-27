@@ -19,13 +19,32 @@ You do not need to add the bot to a server. The bot only reads my_star's public 
 
 ## Run
 
-1. Open the Discord desktop app.
-2. Run `npm install` (first time only).
-3. Run `npm start`.
+The program starts by itself at Windows login, with no window. The file
+`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\MyStarActivity.vbs` runs `start-hidden.vbs`.
+The output goes to `activity.log`. Only one copy can run at a time.
 
-Keep the window open. When you close it, the activity goes away.
+To start it by hand: run `npm install` (first time only), then `npm start`.
 
 To check the card data without Discord, run `npm run dry`.
+
+## Turn it on and off
+
+Use Horaya's `/mystar on` and `/mystar off`. The card changes in about 15 seconds. The default is off.
+
+1. Put Horaya's public address in `.env` as `HORAYA_URL`.
+2. Put the same `MYSTAR_SECRET` in `.env` here and in Horaya's host `.env`.
+
+If `HORAYA_URL` is empty, the card is always on. If Horaya does not answer, the card keeps its last state.
+
+## Voice channel icon
+
+The small icon next to your name in a voice channel is the Discord app's icon. The program sets it to my_star's
+avatar, and updates it when the avatar changes. Discord shows this icon as a still picture.
+
+## Why the GIF can stop
+
+Discord's own app decides when a GIF plays. For example, it can pause GIFs when the Discord window is not focused.
+The program sends the card only one time, because every re-send makes Discord reload the image.
 
 ## Change the text
 
