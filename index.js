@@ -24,7 +24,9 @@ function avatarUrl(user) {
     const index = Number((BigInt(FRIEND_ID) >> 22n) % 6n);
     return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
   }
-  return `https://cdn.discordapp.com/avatars/${FRIEND_ID}/${user.avatar}.png?size=512`;
+  // Hashes that start with "a_" are animated avatars: use the GIF so the card moves.
+  const ext = user.avatar.startsWith("a_") ? "gif" : "png";
+  return `https://cdn.discordapp.com/avatars/${FRIEND_ID}/${user.avatar}.${ext}?size=512`;
 }
 
 async function fetchFriend() {
