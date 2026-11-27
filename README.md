@@ -29,9 +29,12 @@ To check the card data without Discord, run `npm run dry`.
 
 ## Turn it on and off
 
-Use Horaya's `/mystar on` and `/mystar off`. The card changes in about 15 seconds. The default is off.
-`/mystar status <text>` changes the line under my_star's name. Leave the text empty to go back to `config.json`'s
-`state`. `/mystar show` tells you the current state.
+Use Horaya's `/mystar` with any mix of these optional options. The card changes in about 15 seconds.
+
+- `power:on` shows the card (run it again to re-send the card). `power:off` hides it. The default is off.
+- `status:<text>` changes the line under my_star's name (2 to 128 characters).
+- `reset_status:True` puts the line back to `config.json`'s `state`.
+- `/mystar` with no options tells you the current state.
 
 1. Put Horaya's public address in `.env` as `HORAYA_URL`.
 2. Put the same `MYSTAR_SECRET` in `.env` here and in Horaya's host `.env`.
