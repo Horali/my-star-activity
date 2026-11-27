@@ -82,6 +82,7 @@ async function syncAppIcon() {
 let wantOn = !HORAYA_URL;
 let rev = null; // goes up on every /mystar on
 let resend = false;
+let status = ""; // from /mystar status; empty = config.state
 async function checkToggle() {
   if (!HORAYA_URL) return;
   try {
@@ -94,6 +95,12 @@ async function checkToggle() {
     wantOn = Boolean(data.on);
     if (rev !== null && data.rev !== rev && wantOn) resend = true;
     rev = data.rev;
+    const newStatus = typeof data.status === "string" ? data.status : "";
+    if (newStatus !== status) {
+      status = newStatus;
+      resend = true;
+      console.log(`Status: ${status || "(default)"}`);
+    }
   } catch (err) {
     console.warn(`Could not ask Horaya, keeping the card ${wantOn ? "on" : "off"}: ${err.message}`);
   }
@@ -104,7 +111,7 @@ function buildActivity() {
     type: 0, // "Playing" -> the card reads "Playing <app name>", e.g. "Playing with my_star"
     details: friend.displayName,
     detailsUrl: profileUrl,
-    state: config.state,
+    state: status || config.state,
     stateUrl: profileUrl,
     largeImageKey: friend.avatar,
     largeImageText: `@${friend.username}`,
