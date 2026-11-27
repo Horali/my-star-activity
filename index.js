@@ -101,8 +101,14 @@ async function connect() {
 }
 
 await fetchFriend();
+// Send the card again only when the name or avatar changed.
+// A re-send makes Discord reload the image, and the GIF can stop moving.
 setInterval(async () => {
+  const before = JSON.stringify(friend);
   await fetchFriend();
-  await push();
+  if (JSON.stringify(friend) !== before) {
+    console.log("Friend changed. Updating the card.");
+    await push();
+  }
 }, REFRESH_MS);
 connect();
