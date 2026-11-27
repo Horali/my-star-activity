@@ -1,0 +1,11 @@
+{
+  "state": "Pouring moonlight over Nod-Krai",
+  "smallImage": "",
+  "smallImageText": "",
+  "refreshMinutes": 10,
+  "fallback": {
+    "displayName": "Miyabi",
+    "username": "my_star",
+    "avatar": "https://cdn.discordapp.com/embed/avatars/0.png"
+  }
+}
