@@ -80,6 +80,8 @@ async function syncAppIcon() {
 
 // Asks Horaya if the card should show. Without HORAYA_URL the card is always on.
 let wantOn = !HORAYA_URL;
+let rev = null; // goes up on every /mystar on
+let resend = false;
 async function checkToggle() {
   if (!HORAYA_URL) return;
   try {
@@ -88,7 +90,10 @@ async function checkToggle() {
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`Horaya answered ${res.status}`);
-    wantOn = Boolean((await res.json()).on);
+    const data = await res.json();
+    wantOn = Boolean(data.on);
+    if (rev !== null && data.rev !== rev && wantOn) resend = true;
+    rev = data.rev;
   } catch (err) {
     console.warn(`Could not ask Horaya, keeping the card ${wantOn ? "on" : "off"}: ${err.message}`);
   }
@@ -181,7 +186,8 @@ console.log(`Toggle: ${wantOn ? "on" : "off"}`);
 
 setInterval(async () => {
   await checkToggle();
-  await apply();
+  await apply(resend);
+  resend = false;
 }, TOGGLE_MS);
 
 setInterval(async () => {
