@@ -1,6 +1,6 @@
 Status: waiting
-Needs user: Test /mystar on and /mystar off in Discord.
-Updated: 2026-11-27 21:00
+Needs user: Confirm /mystar on shows the card and /mystar off hides it.
+Updated: 2026-11-27 21:10
 Agent: Claude desktop app, Opus 5.5
 Touches: DiscordBot (Horali/Horaya-Bot): mystar.py, bot.py
 
@@ -28,8 +28,8 @@ The user turns it on and off with Horaya's `/mystar on|off`. Default off.
 
 ## Decisions and lessons (keep)
 
-- Wispbyte has no .git in the server, so Auto Update does nothing. Deploy = upload changed files in
-  the Files page, then Restart. The upload tool reads only from this repo: copy files to `.upload/` first.
+- Horaya deploy: push to Horali/Horaya-Bot, then Restart on Wispbyte. The startup command now starts with a
+  git-init-in-place block (tested: pulled 1b13e4c). Wispbyte's Clone button needs an empty server: do not use it.
 - Re-sending the activity stops the GIF. Send only on change. Single-instance guard on 127.0.0.1:47321.
 - TaskStop kills npm but not its node child: kill node by PID.
 - /mystar is for OWNER_ID only (not my_star, who is also in OWNER_IDS).
