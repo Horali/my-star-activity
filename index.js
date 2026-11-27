@@ -141,13 +141,21 @@ await new Promise((resolve) => {
   lock.listen(47321, "127.0.0.1", resolve);
 });
 
-const client = new Client({ clientId: CLIENT_ID });
+let client = null;
 let connected = false;
 let shown = false; // what Discord shows now
+let reconnecting = false;
 
 // Send the card only when something changed.
 // A re-send makes Discord reload the image, and the GIF can stop moving.
-async function apply(force = false) {
+// Sends wait in a queue: two sends at the same time showed the card twice.
+let queue = Promise.resolve();
+function apply(force = false) {
+  queue = queue.then(() => applyNow(force));
+  return queue;
+}
+
+async function applyNow(force) {
   if (!connected) return;
   try {
     if (wantOn && (!shown || force)) {
@@ -160,27 +168,50 @@ async function apply(force = false) {
       console.log("Card off.");
     }
   } catch (err) {
-    console.warn(`Could not update the card: ${err.message}`);
+    // After a Discord reload (Ctrl+R) the old link breaks without a "disconnected" event.
+    // Every send then fails, so start a new link. "ready" sends the card again.
+    console.warn(`Could not update the card (${err?.message || err?.code || err}). Connecting again...`);
+    await reconnect();
   }
 }
 
-client.on("ready", async () => {
-  connected = true;
-  shown = false;
-  console.log("Connected to Discord.");
-  await apply();
-});
-
-client.on("disconnected", () => {
+async function reconnect() {
+  if (reconnecting) return;
+  reconnecting = true;
   connected = false;
-  console.warn("Discord closed. Trying again soon...");
-  setTimeout(connect, RETRY_MS);
-});
+  const old = client;
+  client = null;
+  try { await old?.destroy(); } catch {}
+  reconnecting = false;
+  connect();
+}
+
+function newClient() {
+  const c = new Client({ clientId: CLIENT_ID });
+  c.on("ready", async () => {
+    if (c !== client) return;
+    connected = true;
+    shown = false;
+    console.log("Connected to Discord.");
+    await apply();
+  });
+  c.on("disconnected", () => {
+    if (c !== client) return; // an old link we closed on purpose
+    connected = false;
+    console.warn("Discord closed. Trying again soon...");
+    client = null;
+    setTimeout(connect, RETRY_MS);
+  });
+  return c;
+}
 
 async function connect() {
+  if (client) return;
+  client = newClient();
   try {
     await client.login();
   } catch {
+    client = null;
     console.warn("Discord is not open yet. Trying again in 15 seconds...");
     setTimeout(connect, RETRY_MS);
   }
@@ -192,6 +223,10 @@ await checkToggle();
 console.log(`Toggle: ${wantOn ? "on" : "off"}`);
 
 setInterval(async () => {
+  if (connected && client && !client.isConnected) {
+    console.warn("The link to Discord is dead. Connecting again...");
+    await reconnect();
+  }
   await checkToggle();
   await apply(resend);
   resend = false;
