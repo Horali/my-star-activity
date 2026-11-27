@@ -1,12 +1,17 @@
 // Shows "Playing with my_star" on your Discord profile, with my_star's live avatar.
+// Horaya's /mystar command turns it on or off (see README.md).
 import { Client } from "@xhayper/discord-rpc";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { createServer } from "node:net";
 
 const config = JSON.parse(readFileSync(new URL("./config.json", import.meta.url), "utf8"));
-const { CLIENT_ID, BOT_TOKEN, FRIEND_ID } = process.env;
+const ICON_FILE = new URL("./.icon-avatar", import.meta.url);
+const { CLIENT_ID, BOT_TOKEN, FRIEND_ID, HORAYA_URL, MYSTAR_SECRET } = process.env;
 const DRY_RUN = process.argv.includes("--dry");
 const REFRESH_MS = config.refreshMinutes * 60 * 1000;
+const TOGGLE_MS = 15 * 1000;
 const RETRY_MS = 15 * 1000;
+const API = "https://discord.com/api/v10";
 const startedAt = Date.now();
 
 if (!CLIENT_ID || !FRIEND_ID) {
@@ -15,36 +20,77 @@ if (!CLIENT_ID || !FRIEND_ID) {
 }
 
 const profileUrl = `https://discord.com/users/${FRIEND_ID}`;
+const botHeaders = { Authorization: `Bot ${BOT_TOKEN}`, "Content-Type": "application/json" };
 
 // Fallback values when the bot token is missing or Discord's API fails.
 let friend = { ...config.fallback };
+let avatarHash = null;
 
-function avatarUrl(user) {
-  if (!user.avatar) {
+function avatarUrl(hash) {
+  if (!hash) {
     const index = Number((BigInt(FRIEND_ID) >> 22n) % 6n);
     return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
   }
   // Hashes that start with "a_" are animated avatars: use the GIF so the card moves.
-  const ext = user.avatar.startsWith("a_") ? "gif" : "png";
-  return `https://cdn.discordapp.com/avatars/${FRIEND_ID}/${user.avatar}.${ext}?size=512`;
+  const ext = hash.startsWith("a_") ? "gif" : "png";
+  return `https://cdn.discordapp.com/avatars/${FRIEND_ID}/${hash}.${ext}?size=512`;
 }
 
 async function fetchFriend() {
   if (!BOT_TOKEN) return;
   try {
-    const res = await fetch(`https://discord.com/api/v10/users/${FRIEND_ID}`, {
-      headers: { Authorization: `Bot ${BOT_TOKEN}` },
-    });
+    const res = await fetch(`${API}/users/${FRIEND_ID}`, { headers: botHeaders });
     if (!res.ok) throw new Error(`Discord API answered ${res.status}`);
     const user = await res.json();
+    avatarHash = user.avatar;
     friend = {
       displayName: user.global_name || user.username,
       username: user.username,
-      avatar: avatarUrl(user),
+      avatar: avatarUrl(user.avatar),
     };
     console.log(`Fetched ${friend.displayName} (@${friend.username})`);
   } catch (err) {
     console.warn(`Could not fetch friend, using last known data: ${err.message}`);
+  }
+}
+
+// The app icon is the small picture next to your name in voice channels.
+// Keep it the same as my_star's avatar. Upload only when the avatar changed.
+async function syncAppIcon() {
+  if (!BOT_TOKEN || !avatarHash) return;
+  let last = null;
+  try { last = readFileSync(ICON_FILE, "utf8").trim(); } catch {}
+  if (last === avatarHash) return;
+  try {
+    const img = await fetch(friend.avatar);
+    const type = img.headers.get("content-type") || "image/png";
+    const data = Buffer.from(await img.arrayBuffer()).toString("base64");
+    const res = await fetch(`${API}/applications/@me`, {
+      method: "PATCH",
+      headers: botHeaders,
+      body: JSON.stringify({ icon: `data:${type};base64,${data}` }),
+    });
+    if (!res.ok) throw new Error(`Discord API answered ${res.status}`);
+    writeFileSync(ICON_FILE, avatarHash);
+    console.log("Updated the app icon to my_star's avatar.");
+  } catch (err) {
+    console.warn(`Could not update the app icon: ${err.message}`);
+  }
+}
+
+// Asks Horaya if the card should show. Without HORAYA_URL the card is always on.
+let wantOn = !HORAYA_URL;
+async function checkToggle() {
+  if (!HORAYA_URL) return;
+  try {
+    const res = await fetch(`${HORAYA_URL.replace(/\/$/, "")}/mystar`, {
+      headers: { "X-Mystar-Key": MYSTAR_SECRET || "" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new Error(`Horaya answered ${res.status}`);
+    wantOn = Boolean((await res.json()).on);
+  } catch (err) {
+    console.warn(`Could not ask Horaya, keeping the card ${wantOn ? "on" : "off"}: ${err.message}`);
   }
 }
 
@@ -67,26 +113,54 @@ function buildActivity() {
 
 if (DRY_RUN) {
   await fetchFriend();
+  await checkToggle();
+  console.log(`Toggle: ${wantOn ? "on" : "off"}`);
   console.log(JSON.stringify(buildActivity(), null, 2));
   process.exit(0);
 }
 
-const client = new Client({ clientId: CLIENT_ID });
+// Only one copy may run. Two copies both send the card, and that stops the GIF.
+const lock = createServer();
+await new Promise((resolve) => {
+  lock.once("error", () => {
+    console.error("Another copy is already running. This copy stops.");
+    process.exit(0);
+  });
+  lock.listen(47321, "127.0.0.1", resolve);
+});
 
-async function push() {
+const client = new Client({ clientId: CLIENT_ID });
+let connected = false;
+let shown = false; // what Discord shows now
+
+// Send the card only when something changed.
+// A re-send makes Discord reload the image, and the GIF can stop moving.
+async function apply(force = false) {
+  if (!connected) return;
   try {
-    await client.user?.setActivity(buildActivity());
+    if (wantOn && (!shown || force)) {
+      await client.user?.setActivity(buildActivity());
+      shown = true;
+      console.log("Card on.");
+    } else if (!wantOn && shown) {
+      await client.user?.clearActivity();
+      shown = false;
+      console.log("Card off.");
+    }
   } catch (err) {
-    console.warn(`Could not set activity: ${err.message}`);
+    console.warn(`Could not update the card: ${err.message}`);
   }
 }
 
 client.on("ready", async () => {
-  console.log("Connected to Discord. Activity is live.");
-  await push();
+  connected = true;
+  shown = false;
+  console.log("Connected to Discord.");
+  await apply();
 });
 
 client.on("disconnected", () => {
+  connected = false;
   console.warn("Discord closed. Trying again soon...");
   setTimeout(connect, RETRY_MS);
 });
@@ -101,14 +175,23 @@ async function connect() {
 }
 
 await fetchFriend();
-// Send the card again only when the name or avatar changed.
-// A re-send makes Discord reload the image, and the GIF can stop moving.
+await syncAppIcon();
+await checkToggle();
+console.log(`Toggle: ${wantOn ? "on" : "off"}`);
+
+setInterval(async () => {
+  await checkToggle();
+  await apply();
+}, TOGGLE_MS);
+
 setInterval(async () => {
   const before = JSON.stringify(friend);
   await fetchFriend();
   if (JSON.stringify(friend) !== before) {
-    console.log("Friend changed. Updating the card.");
-    await push();
+    console.log("Friend changed. Updating the card and icon.");
+    await syncAppIcon();
+    if (shown) await apply(true);
   }
 }, REFRESH_MS);
+
 connect();
