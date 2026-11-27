@@ -1,6 +1,6 @@
 Status: waiting
-Needs user: Try /mystar power/status/reset_status in Discord (fixed design; user not tested yet).
-Updated: 2026-11-28 00:55
+Needs user: Confirm the card shows on the profile after the reconnect fix.
+Updated: 2026-11-28 01:30
 Agent: Claude desktop app, Opus 5.5
 Touches: DiscordBot (Horali/Horaya-Bot): mystar.py, bot.py
 
@@ -21,15 +21,18 @@ The user turns it on and off with Horaya's `/mystar on|off`. Default off.
 
 ## Next steps
 
-1. User runs /mystar on -> card shows within 15 s. /mystar off -> card goes away.
+1. User runs /mystar options tested by the user and work.
 2. Confirm the voice-list icon.
 
 ## Open problems
 
 - Discord's client can pause GIFs (window not focused). Not in our control.
-- A Discord reload (Ctrl+R) clears the card with no event. Fix: run /mystar on again (rev counter re-sends).
 
 ## Decisions and lessons (keep)
+
+- Never reuse a destroyed RPC Client: on close the library destroys it. Make a new Client per link.
+  The program checks client.isConnected every 15 s and reconnects (tested with Ctrl+R: card came back).
+- Queue the sends: two sends at once showed the card twice.
 
 - Horaya deploy: push to Horali/Horaya-Bot, then Restart on Wispbyte. The startup command now starts with a
   git-init-in-place block (tested: pulled 1b13e4c). Wispbyte's Clone button needs an empty server: do not use it.
