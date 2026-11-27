@@ -1,6 +1,6 @@
 Status: waiting
-Needs user: Try /mystar status <text> in Discord (new; not tested by the user yet).
-Updated: 2026-11-27 21:25
+Needs user: Try /mystar power/status/reset_status in Discord (fixed design; user not tested yet).
+Updated: 2026-11-28 00:55
 Agent: Claude desktop app, Opus 5.5
 Touches: DiscordBot (Horali/Horaya-Bot): mystar.py, bot.py
 
@@ -16,7 +16,7 @@ The user turns it on and off with Horaya's `/mystar on|off`. Default off.
 - PC program: HORAYA_URL set, restarted, reads "Toggle: off". Runs hidden; auto-starts at login.
 - App icon = my_star's avatar (voice "?" icon). Not confirmed in the voice list.
 
-- /mystar is a group: on, off, status <text> (2-128 chars, empty = config.json state), show.
+- /mystar is ONE command with optional options: power (on/off), status (2-128), reset_status. No options = show.
   Deployed and restarted; GET /mystar returns {on, rev, status}.
 
 ## Next steps
@@ -38,6 +38,8 @@ The user turns it on and off with Horaya's `/mystar on|off`. Default off.
 - /mystar is for OWNER_ID only (not my_star, who is also in OWNER_IDS).
 - Creating a Discord app needs an hCaptcha; a token reset needs 2FA. The user does both.
 - Never type secrets into web fields: the user pastes them (clipboard is fine).
+
+- Do not use subcommands for /mystar: Discord put typed text into the subcommand slot ("Not a valid value").
 
 ## Where to look
 
