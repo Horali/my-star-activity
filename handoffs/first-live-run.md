@@ -1,6 +1,6 @@
 Status: waiting
-Needs user: Send Horaya's public URL; add MYSTAR_SECRET (copy from this repo's .env) to Horaya's host .env and redeploy.
-Updated: 2026-11-27 20:40
+Needs user: User is finding where the main Horaya runs (not Wispbyte: only horaya-backup there; user says not Kerit). Then HORAYA_URL + MYSTAR_SECRET + redeploy.
+Updated: 2026-11-27 20:55
 Agent: Claude desktop app, Opus 5.5
 Touches: DiscordBot (Horali/Horaya-Bot): mystar.py, /mystar command, GET /mystar
 
@@ -25,6 +25,8 @@ The user turns it on and off with Horaya's `/mystar on|off`. Default off.
 ## Open problems
 
 - Discord's client can pause GIFs (window not focused). Not in our control.
+- A Discord reload (Ctrl+R) clears the card, but the program gets no event. Restart the program after a reload.
+- The "?" voice icon: app icon is set (API shows it). Not confirmed yet in the voice list.
 
 ## Decisions and lessons (keep)
 
