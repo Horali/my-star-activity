@@ -3,6 +3,7 @@
 import { Client } from "@xhayper/discord-rpc";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { createControllerClient } from "./controller-client.mjs";
 
 const config = JSON.parse(readFileSync(new URL("./config.json", import.meta.url), "utf8"));
 const ICON_FILE = new URL("./.icon-avatar", import.meta.url);
@@ -141,6 +142,33 @@ await new Promise((resolve) => {
   lock.listen(47321, "127.0.0.1", resolve);
 });
 
+// The Activity Controller (traffic light). It decides which card shows when
+// more than one program has a card. "none" means no controller runs: the card
+// works alone, as before. "wait" means no answer yet: show nothing for a moment.
+let light = "wait";
+const allowed = () => wantOn && (light === "green" || light === "none");
+const controller = createControllerClient({
+  id: "mystar",
+  name: "My Star",
+  getState: () => ({
+    ownSwitch: wantOn ? "on" : "off",
+    online: connected,
+    idle: false,
+    showing: shown,
+    preview: {
+      headline: "Playing with my_star",
+      details: friend.displayName || "",
+      state: status || config.state || "",
+      image: friend.avatar || "",
+    },
+  }),
+  onLight: (next) => {
+    if (next !== light) console.log(`Controller light: ${next}`);
+    light = next;
+    apply();
+  },
+});
+
 let client = null;
 let connected = false;
 let shown = false; // what Discord shows now
@@ -158,14 +186,16 @@ function apply(force = false) {
 async function applyNow(force) {
   if (!connected) return;
   try {
-    if (wantOn && (!shown || force)) {
+    if (allowed() && (!shown || force)) {
       await client.user?.setActivity(buildActivity());
       shown = true;
       console.log("Card on.");
-    } else if (!wantOn && shown) {
+      controller.poke();
+    } else if (!allowed() && shown) {
       await client.user?.clearActivity();
       shown = false;
       console.log("Card off.");
+      controller.poke();
     }
   } catch (err) {
     // After a Discord reload (Ctrl+R) the old link breaks without a "disconnected" event.
@@ -221,6 +251,7 @@ await fetchFriend();
 await syncAppIcon();
 await checkToggle();
 console.log(`Toggle: ${wantOn ? "on" : "off"}`);
+controller.start();
 
 setInterval(async () => {
   if (connected && client && !client.isConnected) {
