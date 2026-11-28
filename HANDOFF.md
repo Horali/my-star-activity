@@ -6,7 +6,7 @@ Repo: github.com/Horali/my-star-activity (private). Read `README.md` for setup.
 ## Active tasks
 
 - First real run on Discord: `handoffs/first-live-run.md`
-- Activity Controller link (Phase 2): task file `handoffs/phase2-connect-projects.md` in the DiscordActivityController repo
+- Activity Controller link (Phase 2): task file `handoffs/phase5-phone-control.md` in the DiscordActivityController repo
 
 ## Key facts
 
