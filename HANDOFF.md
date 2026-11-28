@@ -6,7 +6,6 @@ Repo: github.com/Horali/my-star-activity (private). Read `README.md` for setup.
 ## Active tasks
 
 - First real run on Discord: `handoffs/first-live-run.md`
-- Activity Controller link (Phase 2): task file `handoffs/phase5-phone-control.md` in the DiscordActivityController repo
 
 ## Key facts
 
@@ -19,7 +18,7 @@ Repo: github.com/Horali/my-star-activity (private). Read `README.md` for setup.
 ## Activity Controller
 
 - `controller-client.mjs` (a copy from DiscordActivityController) checks in at `127.0.0.1:47400` every 2 s.
-- The card shows only when Horaya says on AND the light is green or `none` (no controller). The controller switch does not change Horaya yet.
+- The card shows only when Horaya says on AND the light is green or `none` (no controller). The controller switch sets Horaya's My Star state (`POST /mystar`), so it is one switch with `/mystar`.
 
 ## Where to look
 
